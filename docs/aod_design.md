@@ -8,17 +8,17 @@ This document outlines a complete design system for a turn-based fantasy tactics
 
 ### Quickness-Based Turn Order
 
-* Each unit has a **Quickness** stat from 1–10.
+* Each unit has a **Quickness** stat from 1–20.
 * After acting, a unit is re-added to the queue at:
 
   > `CurrentTick + (10 - Quickness) + 1d10`  (min 1 tick)
 
 | Quickness | Delay Range (ticks) | Description      |
 | --------- | ------------------- | ---------------- |
-| 1         | 10–19               | Very slow        |
-| 5         | 6–15                | Average          |
-| 9         | 2–11                | Very fast        |
-| 10        | 1–10                | Fastest possible |
+| 3         | 8–17                | Very slow        |
+| 8         | 3–12                | Average          |
+| 15        | -4–5 (min 1)        | Very fast        |
+| 20        | -9–0 (min 1)        | Fastest possible |
 
 Higher **Quickness** = more frequent turns.
 
@@ -37,7 +37,7 @@ Movement and attacks are exclusive actions.
 
 ## 🏃 Movement
 
-* Units have a **Speed** stat (usually 3–6)
+* Units have a **Speed** stat (typically 2–6, depending on class)
 * Speed = number of tiles moved when choosing the **Move** action
 * Quickness does not increase distance, only turn frequency
 * Movement from the center of one tile to the center of another costs:
@@ -52,23 +52,37 @@ Movement and attacks are exclusive actions.
 
 ### Stats:
 
-* **Health**: HP (0 = death)
-* **Armor**: Flat reduction from incoming damage (min damage = 1)
-* **Strength (STR)**: Affects melee hit and melee damage
-* **Agility (AGI)**: Affects ranged hit and defense (vs melee/ranged)
-* **Intelligence (INT)**: Affects magic hit and defense (vs spells)
+All stats use a **1-20 scale** with **direct percentage mapping** (no lookup tables needed).
+
+* **Health**: HP (0 = death), typically 12-60 depending on class
+* **Armor**: Flat reduction from incoming damage (min damage = 1), typically 1-8
+* **Strength (STR)**: Melee hit bonus and damage bonus (STR 15 = +15% hit, +15 damage)
+* **Agility (AGI)**: Ranged hit bonus and defense vs melee/ranged (AGI 12 = +12% ranged hit, -12% to be hit)
+* **Intelligence (INT)**: Magic hit bonus and defense vs spells (INT 18 = +18% magic hit, -18% to be hit by spells)
+* **Quickness**: Turn frequency (1-20, affects turn delay: 10-Quickness+1d10)
+* **Speed**: Movement distance per turn (typically 2-6 tiles)
 
 ### Hit Roll:
 
 ```
-HitChance = Attacker base + stat bonus - Defender stat bonus
+HitChance = Base + Weapon Bonus + Attacker Stat - Defender Stat
 Clamp between 1% and 100%
+
+Examples:
+Melee: 10% + 80% (longsword) + 15% (STR) - 12% (enemy AGI) = 93%
+Ranged: 10% + 70% (bow) + 18% (AGI) - 10% (enemy AGI) = 88%
+Magic: 10% + 60% (staff) + 16% (INT) - 14% (enemy INT) = 72%
 ```
 
 ### Damage:
 
 ```
-Damage = Roll(weapon dice) + bonus - Armor (min 1)
+Damage = Roll(weapon dice) + Stat Bonus - Armor (min 1)
+
+Examples:
+Longsword: 2d6 + 15 (STR) - 4 (armor) = 4-18 damage (avg 11)
+War Bow: 1d8 + 18 (AGI) - 2 (armor) = 17-24 damage (avg 20.5)
+Fireball: 2d6 + 16 (INT) - 0 (no armor vs magic) = 18-28 damage (avg 23)
 ```
 
 ---
