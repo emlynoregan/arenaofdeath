@@ -151,8 +151,7 @@ class Character {
             strength: generatedStats.strength, // STR: melee hit & damage
             agility: generatedStats.agility,  // AGI: ranged hit & defense
             intelligence: generatedStats.intelligence, // INT: magic hit & defense
-            quickness: generatedStats.quickness, // Turn frequency (1-10)
-            speed: generatedStats.speed       // Movement tiles per turn (3-6)
+            quickness: generatedStats.quickness  // Turn frequency (1-20)
         };
         
         // Current State
@@ -180,6 +179,12 @@ class Character {
         this.kills = 0;
         this.deaths = 0;
     }
+    
+    // Calculate current movement speed based on health
+    getCurrentSpeed() {
+        const healthPercent = this.currentHealth / this.stats.health;
+        return Math.ceil(2 + (healthPercent * 5));
+    }
 }
 ```
 
@@ -191,6 +196,12 @@ From the core design, characters are generated with randomized stats within bala
 - **Full Healing**: Characters are fully healed (`currentHealth = stats.health`) when entering a new battle
 - **Status Reset**: All status effects are cleared between battles
 - **Equipment Reset**: All item cooldowns are reset to 0
+
+#### Dynamic Movement Speed
+- **Health-Based Speed**: Movement speed changes based on current health percentage
+- **Formula**: `2 + (currentHealth / maxHealth) * 5` (rounded up)
+- **Range**: 7 tiles (full health) → 3 tiles (near death)
+- **Tactical Impact**: Wounded characters become slower, creating positioning risks
 
 #### Stat Generation
 ```javascript
@@ -228,13 +239,12 @@ const CHARACTER_CLASSES = {
         name: "Elf",
         description: "Agile archers with keen senses",
         statModifiers: {
-            health: { min: 15, max: 30 },     // Lower health
-            armor: { min: 1, max: 3 },        // Light natural armor
+            health: { min: 20, max: 35 },     // Low health (squishy)
+            armor: { min: 1, max: 5 },        // Light natural armor
             strength: { min: 3, max: 8 },     // Weak melee
             agility: { min: 14, max: 20 },    // Excellent agility (+14-20% ranged hit, defense)
             intelligence: { min: 8, max: 15 }, // Good intelligence
-            quickness: { min: 12, max: 18 },  // Very quick (2-8 tick delay)
-            speed: { min: 4, max: 6 }         // Good speed
+            quickness: { min: 12, max: 18 }   // Very quick (2-8 tick delay)
         },
         preferredEquipment: ["bow", "light_armor", "arrows"],
         startingAbilities: ["aimed_shot"],
@@ -248,13 +258,12 @@ const CHARACTER_CLASSES = {
         name: "Dwarf", 
         description: "Sturdy warriors with heavy armor and weapons",
         statModifiers: {
-            health: { min: 35, max: 60 },     // Very high health
-            armor: { min: 3, max: 8 },        // High base armor
+            health: { min: 70, max: 100 },    // Very high health (tank)
+            armor: { min: 8, max: 15 },       // High base armor
             strength: { min: 12, max: 18 },   // Very high strength (+12-18% hit, damage)
             agility: { min: 3, max: 8 },      // Poor agility
             intelligence: { min: 4, max: 10 }, // Low intelligence
-            quickness: { min: 3, max: 8 },    // Slow (7-12 tick delay)
-            speed: { min: 2, max: 4 }         // Slow movement
+            quickness: { min: 3, max: 8 }     // Slow (7-12 tick delay)
         },
         preferredEquipment: ["axe", "hammer", "heavy_armor", "shield"],
         startingAbilities: ["defensive_stance"],
@@ -268,13 +277,12 @@ const CHARACTER_CLASSES = {
         name: "Barbarian",
         description: "Fierce warriors who favor two-handed weapons",
         statModifiers: {
-            health: { min: 30, max: 50 },     // High health
-            armor: { min: 1, max: 4 },        // Light armor
+            health: { min: 50, max: 70 },     // High health
+            armor: { min: 2, max: 6 },        // Light armor
             strength: { min: 15, max: 20 },   // Exceptional strength (+15-20% hit, damage)
             agility: { min: 8, max: 14 },     // Moderate agility
             intelligence: { min: 2, max: 6 }, // Very low intelligence
-            quickness: { min: 8, max: 15 },   // Good quickness (5-12 tick delay)
-            speed: { min: 4, max: 6 }         // Good speed
+            quickness: { min: 8, max: 15 }    // Good quickness (5-12 tick delay)
         },
         preferredEquipment: ["two_handed_axe", "two_handed_sword", "light_armor"],
         startingAbilities: ["berserker_rage"],
@@ -288,13 +296,12 @@ const CHARACTER_CLASSES = {
         name: "Soldier",
         description: "Disciplined fighters with sword and shield",
         statModifiers: {
-            health: { min: 25, max: 40 },     // Good health
-            armor: { min: 2, max: 6 },        // Moderate armor
+            health: { min: 40, max: 60 },     // Good health
+            armor: { min: 4, max: 10 },       // Moderate armor
             strength: { min: 10, max: 15 },   // Good strength (+10-15% hit, damage)
             agility: { min: 8, max: 12 },     // Balanced agility
             intelligence: { min: 6, max: 12 }, // Average intelligence
-            quickness: { min: 6, max: 12 },   // Balanced quickness (8-14 tick delay)
-            speed: { min: 3, max: 5 }         // Average speed
+            quickness: { min: 6, max: 12 }    // Balanced quickness (8-14 tick delay)
         },
         preferredEquipment: ["sword", "shield", "medium_armor"],
         startingAbilities: ["shield_bash"],
@@ -308,13 +315,12 @@ const CHARACTER_CLASSES = {
         name: "Fire Mage",
         description: "Wielders of flame magic with magical implements",
         statModifiers: {
-            health: { min: 12, max: 25 },     // Low health
+            health: { min: 20, max: 30 },     // Very low health (glass cannon)
             armor: { min: 1, max: 3 },        // Minimal armor
             strength: { min: 2, max: 6 },     // Very weak melee
             agility: { min: 8, max: 14 },     // Moderate agility
             intelligence: { min: 15, max: 20 }, // Exceptional intelligence (+15-20% magic hit)
-            quickness: { min: 10, max: 16 },  // Good quickness (4-10 tick delay)
-            speed: { min: 3, max: 5 }         // Average speed
+            quickness: { min: 10, max: 16 }   // Good quickness (4-10 tick delay)
         },
         preferredEquipment: ["staff", "wand", "magical_amulet", "robes"],
         startingAbilities: ["fireball", "fire_arrow"],
@@ -328,13 +334,12 @@ const CHARACTER_CLASSES = {
         name: "Cleric",
         description: "Holy warriors with healing magic and divine protection",
         statModifiers: {
-            health: { min: 20, max: 35 },     // Good health
-            armor: { min: 2, max: 5 },        // Divine protection
+            health: { min: 35, max: 55 },     // Good health
+            armor: { min: 3, max: 8 },        // Divine protection
             strength: { min: 8, max: 12 },    // Moderate strength (+8-12% hit, damage)
             agility: { min: 6, max: 10 },     // Moderate agility
             intelligence: { min: 12, max: 18 }, // High intelligence (+12-18% magic hit)
-            quickness: { min: 6, max: 12 },   // Moderate quickness (8-14 tick delay)
-            speed: { min: 3, max: 5 }         // Average speed
+            quickness: { min: 6, max: 12 }    // Moderate quickness (8-14 tick delay)
         },
         preferredEquipment: ["mace", "shield", "holy_symbol", "medium_armor"],
         startingAbilities: ["heal", "divine_protection"],
@@ -348,13 +353,12 @@ const CHARACTER_CLASSES = {
         name: "Monk",
         description: "Unarmored martial artists with inner power",
         statModifiers: {
-            health: { min: 18, max: 32 },     // Moderate health
-            armor: { min: 3, max: 6 },        // Natural armor (Qi protection)
+            health: { min: 30, max: 50 },     // Moderate health
+            armor: { min: 5, max: 10 },       // Natural armor (Qi protection)
             strength: { min: 8, max: 14 },    // Good strength (+8-14% hit, damage)
             agility: { min: 15, max: 20 },    // Exceptional agility (+15-20% defense)
             intelligence: { min: 10, max: 16 }, // Good intelligence (inner wisdom)
-            quickness: { min: 15, max: 20 },  // Exceptional quickness (0-5 tick delay)
-            speed: { min: 5, max: 6 }         // High speed
+            quickness: { min: 15, max: 20 }   // Exceptional quickness (0-5 tick delay)
         },
         preferredEquipment: [],               // No equipment preference
         startingAbilities: ["qi_strike", "qi_shell"],
@@ -517,7 +521,7 @@ class NameGenerator {
 │  STR: 8    ████████    Melee Dmg: +8   │
 │  AGI: 5    █████        Ranged Hit: +5 │
 │  INT: 4    ████         Magic Def: +4  │
-│  QUICK: 6  ██████       Speed: 4 tiles │
+│  QUICK: 6  ██████       Speed: 7→3 tiles│
 │  ARMOR: 4  ████         Next Turn: 3   │
 ├─────────────────────────────────────────┤
 │  Equipment:                             │
@@ -558,7 +562,7 @@ class NameGenerator {
 │  Projected Combat Stats:                │
 │  Melee Hit: +8  Melee Damage: 1d8+8    │
 │  Defense: AGI+10% (heavy shield)        │
-│  Movement: 3 tiles per turn             │
+│  Movement: 7 tiles (full health)        │
 │                                         │
 │  Rerolls Remaining: 2/3                 │
 │                                         │
@@ -653,9 +657,9 @@ const SAMPLE_WEAPONS = {
         name: "Longsword",
         type: "weapon",
         handedness: "two-handed",
-        meleeDice: "2d6",
-        meleeDamage: 3,
-        meleeHit: 5,
+        meleeDice: "1d8",
+        meleeDamage: 8,
+        meleeHit: 80,
         cooldown: 2,
         primaryRole: "melee"
     },
@@ -665,8 +669,8 @@ const SAMPLE_WEAPONS = {
         type: "weapon",
         handedness: "one-handed",
         meleeDice: "1d4",
-        meleeDamage: 1,
-        meleeHit: 10,
+        meleeDamage: 3,
+        meleeHit: 70,
         cooldown: 1,
         primaryRole: "melee"
     },
@@ -675,9 +679,9 @@ const SAMPLE_WEAPONS = {
         name: "War Bow",
         type: "weapon", 
         handedness: "two-handed",
-        rangedDice: "1d8",
-        rangedDamage: 2,
-        rangedHit: 8,
+        rangedDice: "1d6",
+        rangedDamage: 6,
+        rangedHit: 75,
         range: 8,
         ammo: 30,
         cooldown: 1,
@@ -703,28 +707,28 @@ const SAMPLE_ARMOR = {
     clothRobes: {
         name: "Cloth Robes",
         type: "armor",
-        armor: 1,
+        armor: 2,
         magicDefense: 10  // +10%
     },
     
     leather: {
         name: "Leather Armor", 
         type: "armor",
-        armor: 2,
+        armor: 4,
         meleeDefense: 5   // +5%
     },
     
     chainmail: {
         name: "Chainmail",
         type: "armor", 
-        armor: 3,
+        armor: 8,
         meleeDefense: 5
     },
     
     plate: {
         name: "Plate Armor",
         type: "armor",
-        armor: 4,
+        armor: 12,
         magicDefense: -5  // -5% (weakness)
     }
 };

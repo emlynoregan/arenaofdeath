@@ -37,11 +37,23 @@ Movement and attacks are exclusive actions.
 
 ## 🏃 Movement
 
-* Units have a **Speed** stat (typically 2–6, depending on class)
+* **Speed is dynamic** based on current health percentage
+* **Speed Formula**: `2 + (currentHealth / maxHealth) * 5` (rounded up)
+* **Speed Range**: 7 tiles (full health) down to 3 tiles (near death)
 * Speed = number of tiles moved when choosing the **Move** action
 * Quickness does not increase distance, only turn frequency
-* Movement from the center of one tile to the center of another costs:
 
+### Movement Examples
+| Health % | Speed Calculation | Final Speed |
+|----------|-------------------|-------------|
+| 100%     | 2 + (1.0 * 5) = 7 | 7 tiles    |
+| 80%      | 2 + (0.8 * 5) = 6 | 6 tiles    |
+| 60%      | 2 + (0.6 * 5) = 5 | 5 tiles    |
+| 40%      | 2 + (0.4 * 5) = 4 | 4 tiles    |
+| 20%      | 2 + (0.2 * 5) = 3 | 3 tiles    |
+| 1%       | 2 + (0.01 * 5) = 2.05 | 3 tiles (rounded up) |
+
+* Movement from the center of one tile to the center of another costs:
   * **1 point** for horizontal or vertical
   * **1.4 points** for diagonal
 * Pathfinding and movement cost is calculated accordingly
@@ -54,13 +66,12 @@ Movement and attacks are exclusive actions.
 
 All stats use a **1-20 scale** with **direct percentage mapping** (no lookup tables needed).
 
-* **Health**: HP (0 = death), typically 12-60 depending on class
-* **Armor**: Flat reduction from incoming damage (min damage = 1), typically 1-8
+* **Health**: HP (0 = death), range 20-100 depending on class
+* **Armor**: Flat damage reduction (min damage = 1), range 1-20 base + 1-5 from items
 * **Strength (STR)**: Melee hit bonus and damage bonus (STR 15 = +15% hit, +15 damage)
 * **Agility (AGI)**: Ranged hit bonus and defense vs melee/ranged (AGI 12 = +12% ranged hit, -12% to be hit)
 * **Intelligence (INT)**: Magic hit bonus and defense vs spells (INT 18 = +18% magic hit, -18% to be hit by spells)
 * **Quickness**: Turn frequency (1-20, affects turn delay: 10-Quickness+1d10)
-* **Speed**: Movement distance per turn (typically 2-6 tiles)
 
 ### Hit Roll:
 
@@ -80,9 +91,11 @@ Magic: 10% + 60% (staff) + 16% (INT) - 14% (enemy INT) = 72%
 Damage = Roll(weapon dice) + Stat Bonus - Armor (min 1)
 
 Examples:
-Longsword: 2d6 + 15 (STR) - 4 (armor) = 4-18 damage (avg 11)
-War Bow: 1d8 + 18 (AGI) - 2 (armor) = 17-24 damage (avg 20.5)
-Fireball: 2d6 + 16 (INT) - 0 (no armor vs magic) = 18-28 damage (avg 23)
+Longsword: 1d8+8 + 15 (STR) - 8 (armor) = 16-23 damage (avg 19.5)
+War Bow: 1d6+6 + 0 (no AGI bonus) - 5 (armor) = 2-7 damage (avg 4.5)
+Fireball: 1d10+10 + 0 (no INT bonus) - 0 (no armor vs magic) = 11-20 damage (avg 15.5)
+
+**One-Shot Potential**: Strong attacks (15-20 damage + stat bonus) can one-shot weak characters (20 HP)
 ```
 
 ---
